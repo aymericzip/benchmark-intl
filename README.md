@@ -1,73 +1,36 @@
-# React + TypeScript + Vite
+# Intlayer vs Native Intl: Performance Benchmark
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a React-based benchmark designed to measure and visualize the performance impact of creating `Intl` instances (Internationalization API) during component rendering.
 
-Currently, two official plugins are available:
+It compares the **Native `Intl` API** against **`Intlayer`'s Cached Intl** implementation under high-stress rendering scenarios.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Important Configuration Note
 
-## React Compiler
+**This test benchmarks the performance of Intlayer versus Native Intl.**
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+> **⚠️ Execute this WITHOUT the React Compiler.**
+>
+> The React Compiler levels out performance metrics by optimizing Native API usage, while significantly slowing down Intlayer's performance due to proxy overhead optimization conflicts.
+>
+> The performance difference is most notable in:
+> - Non-V8 browsers (Firefox, Safari).
+> - Applications using FormatJS polyfills (e.g., React Native).
+> - Low-end devices where object instantiation is costly.
 
-## Expanding the ESLint configuration
+## The Problem
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+In JavaScript, creating new instances of `Intl` objects (like `DateTimeFormat`, `NumberFormat`, or `DisplayNames`) is computationally expensive. The engine must:
+1. Parse the locale string.
+2. Load heavy CLDR data.
+3. Resolve fallback chains.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+In React applications, if `new Intl.*` is called inside a component body, this heavy process runs **on every render**.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+```tsx
+// 🐢 Slow on large lists
+const MyComponent = ({ date }) => {
+  // Re-instantiated every render!
+  const formatter = new Intl.DateTimeFormat('en', { month: 'long' });
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+  return <span>{formatter.format(date)}</span>;
+}

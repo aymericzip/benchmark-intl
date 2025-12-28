@@ -11,12 +11,12 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "intlayer": "^7.5.6",
+    "intlayer": "latest",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind": "^4.0.0",
     "tailwind-merge": "^3.4.0",
-    "vite-intlayer": "^7.5.6"
+    "vite-intlayer": "latest"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
